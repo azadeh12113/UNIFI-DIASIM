@@ -6,45 +6,39 @@ import (
 	"diasim/pkg/core"
 )
 
-// World stores the positions of mobile nodes.
+// World stores the positions of nodes in the simulated two-dimensional space.
 type World struct {
 	positions map[core.NodeID]Position
 }
 
-// NewWorld creates an empty world.
-func NewWorld() *World {
+// NewWorld creates a world with initial positions for its nodes.
+// The supplied map is copied so later changes to it do not modify the world.
+func NewWorld(initialPositions map[core.NodeID]Position) *World {
+	positions := make(map[core.NodeID]Position, len(initialPositions))
+
+	for id, position := range initialPositions {
+		positions[id] = position
+	}
+
 	return &World{
-		positions: make(map[core.NodeID]Position),
+		positions: positions,
 	}
 }
 
-// SetPosition assigns a position to a node.
-func (w *World) SetPosition(id core.NodeID, p Position) {
-	w.positions[id] = p
-}
-
-// MoveTo updates a node's position.
-func (w *World) MoveTo(id core.NodeID, x, y float64) {
-	w.SetPosition(id, Position{X: x, Y: y})
-}
-
-// Position returns a node's position and whether it exists.
-func (w *World) Position(id core.NodeID) (Position, bool) {
-	p, ok := w.positions[id]
-	return p, ok
-}
-
-// Distance calculates the distance between two nodes.
-func (w *World) Distance(a, b core.NodeID) (float64, error) {
-	posA, okA := w.positions[a]
-	posB, okB := w.positions[b]
-
-	if !okA || !okB {
-		return 0, fmt.Errorf(
-			"position not found for both nodes %q and %q",
-			a, b,
-		)
+// Position returns a node's position.
+// It panics if the node has no position, because every node in the world
+// is expected to have an initial position.
+func (w *World) Position(id core.NodeID) Position {
+	position, ok := w.positions[id]
+	if !ok {
+		panic(fmt.Sprintf("position missing for node %q", id))
 	}
+	return position
+}
 
-	return posA.DistanceTo(posB), nil
+// Distance returns the distance between two nodes.
+func (w *World) Distance(a, b core.NodeID) float64 {
+	posA := w.Position(a)
+	posB := w.Position(b)
+	return posA.DistanceTo(posB)
 }
