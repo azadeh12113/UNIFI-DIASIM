@@ -2,6 +2,8 @@ package mobile
 
 import (
 	"fmt"
+	"math"
+	"sort"
 
 	"diasim/pkg/core"
 )
@@ -41,4 +43,31 @@ func (w *World) Distance(a, b core.NodeID) float64 {
 	posA := w.Position(a)
 	posB := w.Position(b)
 	return posA.DistanceTo(posB)
+}
+
+// Neighbors returns the nodes whose positions are within radius of id.
+// The node itself is excluded. A node exactly radius units away is included.
+// Results are sorted by NodeID so their order is deterministic.
+func (w *World) Neighbors(id core.NodeID, radius float64) []core.NodeID {
+	if radius < 0 || math.IsNaN(radius) || math.IsInf(radius, 0) {
+		panic(fmt.Sprintf("invalid communication radius %v: radius must be finite and non-negative", radius))
+	}
+
+	center := w.Position(id)
+	neighbors := make([]core.NodeID, 0)
+
+	for otherID, otherPosition := range w.positions {
+		if otherID == id {
+			continue
+		}
+		if center.DistanceTo(otherPosition) <= radius {
+			neighbors = append(neighbors, otherID)
+		}
+	}
+
+	sort.Slice(neighbors, func(i, j int) bool {
+		return neighbors[i] < neighbors[j]
+	})
+
+	return neighbors
 }
